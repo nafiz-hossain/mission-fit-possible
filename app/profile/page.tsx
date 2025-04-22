@@ -21,6 +21,7 @@ export default function Profile() {
     workoutHours: "",
     fitnessGoal: "",
     healthFocus: "",
+    challengeStartDate: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -44,6 +45,7 @@ export default function Profile() {
             workoutHours: userData.workoutHours || "",
             fitnessGoal: userData.fitnessGoal || "",
             healthFocus: userData.healthFocus || "",
+            challengeStartDate: userData.challengeStartDate || new Date().toISOString().split("T")[0],
           })
         }
       } catch (error) {
@@ -161,6 +163,22 @@ export default function Profile() {
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
             />
+          </div>
+
+          <div>
+            <label htmlFor="challengeStartDate" className="block text-sm font-medium text-gray-700">
+              Challenge Start Date
+            </label>
+            <input
+              type="date"
+              id="challengeStartDate"
+              name="challengeStartDate"
+              required
+              value={formData.challengeStartDate}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+            />
+            <p className="mt-1 text-xs text-gray-500">This is when your 30-day challenge begins</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

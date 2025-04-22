@@ -37,6 +37,11 @@ export default function Dashboard() {
   const [activityDistribution, setActivityDistribution] = useState([])
   const [weeklyProgress, setWeeklyProgress] = useState([])
   const [fitnessRadar, setFitnessRadar] = useState([])
+  const [challengeStartDate, setChallengeStartDate] = useState("")
+  const [daysCompleted, setDaysCompleted] = useState(0)
+  const [daysRemaining, setDaysRemaining] = useState(30)
+  const [averageSteps, setAverageSteps] = useState(0)
+  const [userData, setUserData] = useState(null)
 
   useEffect(() => {
     if (loading) return
@@ -52,18 +57,21 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         // Get user data
-        const userData = await getUserData(user.uid)
-        if (userData) {
-          setUserName(userData.name || user.displayName || "")
-          setUserEmail(userData.email || user.email || "")
+        const userDataResult = await getUserData(user.uid)
+        if (userDataResult) {
+          setUserData(userDataResult)
+          setUserName(userDataResult.name || user.displayName || "")
+          setUserEmail(userDataResult.email || user.email || "")
+          setChallengeStartDate(userDataResult.challengeStartDate || new Date().toISOString().split("T")[0])
 
           // Store in localStorage for other components
           localStorage.setItem(
             "user",
             JSON.stringify({
-              name: userData.name || user.displayName || "",
-              email: userData.email || user.email || "",
+              name: userDataResult.name || user.displayName || "",
+              email: userDataResult.email || user.email || "",
               uid: user.uid,
+              challengeStartDate: userDataResult.challengeStartDate,
             }),
           )
         } else {
@@ -75,6 +83,13 @@ export default function Dashboard() {
         // Subscribe to real-time updates for user logs
         unsubscribeUserLogs = subscribeToUserLogs(user.uid, (logs) => {
           if (logs.length > 0) {
+            // Calculate days completed
+            calculateDaysCompleted(logs, userDataResult.challengeStartDate)
+
+            // Calculate average steps
+            const totalSteps = logs.reduce((sum, log) => sum + Number(log.steps || 0), 0)
+            setAverageSteps(Math.round(totalSteps / logs.length))
+
             // Process logs for charts
             const processedData = processLogsForCharts(logs)
             setWeeklyData(processedData)
@@ -83,16 +98,18 @@ export default function Dashboard() {
             setActivityDistribution(generateActivityDistribution(logs))
 
             // Generate weekly progress data
-            setWeeklyProgress(generateWeeklyProgress(logs))
+            setWeeklyProgress(generateWeeklyProgress(logs, userDataResult.challengeStartDate))
 
             // Generate fitness radar data
             setFitnessRadar(generateFitnessRadar(logs))
           } else {
-            // If no logs, use mock data
-            setWeeklyData(generateMockData())
-            setActivityDistribution(generateMockActivityDistribution())
-            setWeeklyProgress(generateMockWeeklyProgress())
-            setFitnessRadar(generateMockFitnessRadar())
+            setDaysCompleted(0)
+            setDaysRemaining(30)
+            setAverageSteps(0)
+            setWeeklyData([])
+            setActivityDistribution([])
+            setWeeklyProgress([])
+            setFitnessRadar([])
           }
           setIsLoading(false)
         })
@@ -103,12 +120,6 @@ export default function Dashboard() {
         })
       } catch (error) {
         console.error("Error fetching data:", error)
-        // Use mock data as fallback
-        setWeeklyData(generateMockData())
-        setLeaderboard(generateLeaderboard())
-        setActivityDistribution(generateMockActivityDistribution())
-        setWeeklyProgress(generateMockWeeklyProgress())
-        setFitnessRadar(generateMockFitnessRadar())
         setIsLoading(false)
       }
     }
@@ -121,6 +132,36 @@ export default function Dashboard() {
       unsubscribeLeaderboard()
     }
   }, [user, loading, router])
+
+  // Calculate days completed and remaining based on challenge start date
+  const calculateDaysCompleted = (logs, startDateStr) => {
+    if (!startDateStr) {
+      setDaysCompleted(0)
+      setDaysRemaining(30)
+      return
+    }
+
+    const startDate = new Date(startDateStr)
+    const today = new Date()
+
+    // Calculate days elapsed since challenge start
+    const diffTime = Math.abs(today - startDate)
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    // Calculate days with logs
+    const uniqueDates = new Set()
+    logs.forEach((log) => {
+      const logDate = new Date(log.date)
+      uniqueDates.add(logDate.toISOString().split("T")[0])
+    })
+
+    const completedDays = uniqueDates.size
+    setDaysCompleted(completedDays)
+
+    // Calculate remaining days (30-day challenge)
+    const remaining = Math.max(0, 30 - diffDays)
+    setDaysRemaining(remaining)
+  }
 
   // Process logs for chart display
   const processLogsForCharts = (logs) => {
@@ -196,7 +237,7 @@ export default function Dashboard() {
   }
 
   // Generate weekly progress data
-  const generateWeeklyProgress = (logs) => {
+  const generateWeeklyProgress = (logs, startDateStr) => {
     // Get the last 7 days
     const last7Days = []
     for (let i = 6; i >= 0; i--) {
@@ -286,67 +327,6 @@ export default function Dashboard() {
     ]
   }
 
-  // Mock data for the dashboard
-  const generateMockData = () => {
-    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    return days.map((day) => ({
-      name: day,
-      steps: Math.floor(Math.random() * 5000) + 3000,
-      water: (Math.random() * 2 + 1).toFixed(1),
-      sleep: (Math.random() * 3 + 5).toFixed(1),
-    }))
-  }
-
-  const generateMockActivityDistribution = () => {
-    return [
-      { name: "Steps", value: 40 },
-      { name: "Water", value: 25 },
-      { name: "Sleep", value: 35 },
-      { name: "Workouts", value: 20 },
-      { name: "No Sugar", value: 15 },
-    ]
-  }
-
-  const generateMockWeeklyProgress = () => {
-    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    return days.map((day) => ({
-      name: day,
-      value: Math.floor(Math.random() * 50) + 30,
-    }))
-  }
-
-  const generateMockFitnessRadar = () => {
-    return [
-      { subject: "Steps", A: 80, fullMark: 100 },
-      { subject: "Water", A: 65, fullMark: 100 },
-      { subject: "Sleep", A: 75, fullMark: 100 },
-      { subject: "Workouts", A: 60, fullMark: 100 },
-      { subject: "No Sugar", A: 70, fullMark: 100 },
-    ]
-  }
-
-  const generateLeaderboard = () => {
-    const names = [
-      "Alex Johnson",
-      "Taylor Smith",
-      "Jordan Lee",
-      "Casey Brown",
-      "Morgan Wilson",
-      "Riley Davis",
-      "Jamie Miller",
-      "Quinn Thomas",
-      "Avery Martin",
-    ]
-
-    return names
-      .map((name) => ({
-        name,
-        points: Math.floor(Math.random() * 500) + 100,
-        streak: Math.floor(Math.random() * 10) + 1,
-      }))
-      .sort((a, b) => b.points - a.points)
-  }
-
   // Colors for pie chart
   const COLORS = ["#8884d8", "#83a6ed", "#8dd1e1", "#82ca9d", "#a4de6c"]
 
@@ -378,11 +358,7 @@ export default function Dashboard() {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Average Daily Steps</dt>
                   <dd>
-                    <div className="text-lg font-medium text-gray-900">
-                      {weeklyData.length > 0
-                        ? Math.round(weeklyData.reduce((acc, day) => acc + day.steps, 0) / weeklyData.length)
-                        : 0}
-                    </div>
+                    <div className="text-lg font-medium text-gray-900">{averageSteps.toLocaleString()}</div>
                   </dd>
                 </dl>
               </div>
@@ -400,7 +376,10 @@ export default function Dashboard() {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Days Completed</dt>
                   <dd>
-                    <div className="text-lg font-medium text-gray-900">7 of 30</div>
+                    <div className="text-lg font-medium text-gray-900">{daysCompleted} of 30</div>
+                    <div className="text-sm text-gray-500">
+                      {daysRemaining > 0 ? `${daysRemaining} days remaining` : "Challenge completed!"}
+                    </div>
                   </dd>
                 </dl>
               </div>

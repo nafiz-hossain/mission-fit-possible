@@ -29,6 +29,7 @@ export interface UserData {
   healthFocus: string
   joinDate?: Date
   photoURL?: string
+  challengeStartDate?: string
 }
 
 // Define the structure of daily log data
@@ -41,6 +42,7 @@ export interface DailyLogData {
   sleepHours: string
   didWorkout: boolean
   date: string | Date
+  id?: string // Added to track document ID for updates
 }
 
 // Check if a user already exists in the users collection
@@ -119,6 +121,67 @@ export async function updateUserProfile(uid: string, data: Partial<UserData>): P
   }
 }
 
+// Check if a log exists for the current date
+export async function checkLogExistsForDate(uid: string, date: Date): Promise<{ exists: boolean; log?: DailyLogData }> {
+  try {
+    const logsRef = collection(db, "dailyLogs")
+
+    // Create date range for the given date (start of day to end of day)
+    const startDate = new Date(date)
+    startDate.setHours(0, 0, 0, 0)
+
+    const endDate = new Date(date)
+    endDate.setHours(23, 59, 59, 999)
+
+    const q = query(logsRef, where("uid", "==", uid), where("date", ">=", startDate), where("date", "<=", endDate))
+
+    const querySnapshot = await getDocs(q)
+
+    if (querySnapshot.empty) {
+      return { exists: false }
+    }
+
+    // Return the first log found for that day
+    const docData = querySnapshot.docs[0].data()
+    const logData: DailyLogData = {
+      uid: docData.uid,
+      email: docData.email,
+      steps: docData.steps,
+      noAddedSugar: docData.noAddedSugar,
+      waterIntake: docData.waterIntake,
+      sleepHours: docData.sleepHours,
+      didWorkout: docData.didWorkout,
+      date: docData.date.toDate(),
+      id: querySnapshot.docs[0].id,
+    }
+
+    return { exists: true, log: logData }
+  } catch (error) {
+    console.error("Error checking log for date:", error)
+    return { exists: false }
+  }
+}
+
+// Update an existing daily log
+export async function updateDailyLog(logId: string, logData: Partial<DailyLogData>): Promise<void> {
+  try {
+    const logRef = doc(db, "dailyLogs", logId)
+
+    // Remove id from the data to be updated
+    const { id, ...dataToUpdate } = logData
+
+    await updateDoc(logRef, {
+      ...dataToUpdate,
+      updatedAt: new Date(),
+    })
+
+    console.log("Daily log updated successfully")
+  } catch (error) {
+    console.error("Error updating daily log:", error)
+    throw new Error(`Failed to update daily log: ${error.message}`)
+  }
+}
+
 // Save daily log to Firestore
 export async function saveDailyLog(logData: DailyLogData, uid: string): Promise<void> {
   try {
@@ -160,6 +223,7 @@ export async function getUserLogs(uid: string): Promise<DailyLogData[]> {
         sleepHours: data.sleepHours,
         didWorkout: data.didWorkout,
         date: data.date.toDate(),
+        id: doc.id,
       })
     })
 
@@ -188,6 +252,7 @@ export function subscribeToUserLogs(uid: string, callback: (logs: DailyLogData[]
         sleepHours: data.sleepHours,
         didWorkout: data.didWorkout,
         date: data.date.toDate(),
+        id: doc.id,
       })
     })
     callback(logs)

@@ -443,9 +443,6 @@ export default function Dashboard() {
                 <YAxis yAxisId="right" orientation="right" />
                 <Tooltip />
                 <Legend />
-                <Line orientation="right" />
-                <Tooltip />
-                <Legend />
                 <Line
                   yAxisId="left"
                   type="monotone"

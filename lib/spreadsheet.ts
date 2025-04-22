@@ -1,77 +1,69 @@
-"use server"
-
 import { GoogleSpreadsheet } from "google-spreadsheet"
-import { JWT } from "google-auth-library"
 
-// Define the structure of user data
+// Define the UserData type
 interface UserData {
   name: string
   email: string
-  currentWeight: string
-  averageSteps: string
-  hasSugarTooth: string
-  waterIntake: string
-  sleepHours: string
-  workoutHours: string
+  currentWeight: number
+  averageSteps: number
+  hasSugarTooth: boolean
+  waterIntake: number
+  sleepHours: number
+  workoutHours: number
   fitnessGoal: string
   healthFocus: string
 }
 
-// Google Sheets configuration
-const SPREADSHEET_ID = "16k03FrZ4eTGXnn8aWgBK1qnzGhdUV7wJqnTuLkEiEgU"
-const SHEET_INDEX = 0 // First sheet
-
-// Initialize auth - use service account credentials
-const getJWT = () => {
-  // In a real application, these would be environment variables
-  // For this demo, we're using a service account key
-  // You would need to create a service account and download the JSON key
-  const CREDENTIALS = {
-    client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+// Define debugLog function
+function debugLog(message: string, ...args: any[]) {
+  if (process.env.NODE_ENV === "development") {
+    console.log(`DEBUG: ${message}`, ...args)
   }
-
-  return new JWT({
-    email: CREDENTIALS.client_email,
-    key: CREDENTIALS.private_key,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive.file"],
-  })
 }
 
-// Initialize the sheet
-const getDoc = async () => {
-  const jwt = getJWT()
-  const doc = new GoogleSpreadsheet(SPREADSHEET_ID, jwt)
-  await doc.loadInfo() // Load document properties and worksheets
+// Define getDoc function (replace with your actual implementation)
+async function getDoc(): Promise<GoogleSpreadsheet> {
+  // Replace with your actual spreadsheet ID and credentials loading
+  const doc = new GoogleSpreadsheet(process.env.GOOGLE_SPREADSHEET_ID)
+  try {
+    await doc.useServiceAccountAuth({
+      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      private_key: process.env.GOOGLE_PRIVATE_KEY,
+    })
+  } catch (error) {
+    console.error("Error using service account auth:", error)
+    throw new Error(`Failed to authenticate with Google Sheets: ${error.message}`)
+  }
+  await doc.loadInfo() // loads document properties and worksheets
   return doc
 }
 
-// Check if an email already exists in the spreadsheet
-export async function checkEmailExists(email: string): Promise<boolean> {
-  try {
-    const doc = await getDoc()
-    const sheet = doc.sheetsByIndex[SHEET_INDEX]
-    await sheet.loadHeaderRow() // Load the header row
-
-    // Load all rows to check for the email
-    const rows = await sheet.getRows()
-
-    // Check if the email exists in any row
-    return rows.some((row) => row.get("email") === email)
-  } catch (error) {
-    console.error("Error checking email:", error)
-    throw new Error("Failed to check if email exists")
-  }
-}
+// Define SHEET_INDEX
+const SHEET_INDEX = 0
 
 // Save user data to the spreadsheet
 export async function saveUserData(userData: UserData): Promise<void> {
+  debugLog("Saving user data", userData)
+
   try {
     const doc = await getDoc()
-    const sheet = doc.sheetsByIndex[SHEET_INDEX]
 
-    // If the sheet is empty, add headers
-    if (sheet.headerValues.length === 0) {
+    // Get the first sheet or create it if it doesn't exist
+    let sheet
+    if (doc.sheetsByIndex.length === 0) {
+      debugLog("Creating new sheet")
+      sheet = await doc.addSheet({ title: "Users" })
+    } else {
+      sheet = doc.sheetsByIndex[SHEET_INDEX]
+    }
+
+    // Check if headers exist by getting the header values
+    debugLog("Checking for headers")
+    await sheet.loadHeaderRow()
+
+    // If the sheet is empty or has no headers, add them
+    if (!sheet.headerValues || sheet.headerValues.length === 0) {
+      debugLog("Setting header row")
       await sheet.setHeaderRow([
         "name",
         "email",
@@ -88,12 +80,15 @@ export async function saveUserData(userData: UserData): Promise<void> {
     }
 
     // Add the new row with user data
+    debugLog("Adding new row")
     await sheet.addRow({
       ...userData,
       joinDate: new Date().toISOString(),
     })
+
+    debugLog("User data saved successfully")
   } catch (error) {
     console.error("Error saving user data:", error)
-    throw new Error("Failed to save user data")
+    throw new Error(`Failed to save user data to Google Sheets: ${error.message}`)
   }
 }

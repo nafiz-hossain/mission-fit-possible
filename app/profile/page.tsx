@@ -1,15 +1,16 @@
 "use client"
 
 import type React from "react"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { AlertCircle, Loader2 } from "lucide-react"
-import { saveUserData, checkUserExists } from "@/lib/firebase-db"
 import { useAuth } from "@/contexts/auth-context"
+import { getUserData, updateUserProfile } from "@/lib/firebase-db"
+import { Loader2, AlertCircle, Check } from "lucide-react"
 
-export default function Onboarding() {
-  const router = useRouter()
+export default function Profile() {
   const { user, loading } = useAuth()
+  const router = useRouter()
   const [formData, setFormData] = useState({
     name: "",
     currentWeight: "",
@@ -22,39 +23,42 @@ export default function Onboarding() {
     healthFocus: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState("")
+  const [profileLoading, setProfileLoading] = useState(true)
 
-  // Check authentication status
   useEffect(() => {
-    if (loading) return
+    async function loadUserProfile() {
+      if (!user) return
 
-    if (!user) {
-      router.push("/login")
-      return
-    }
-
-    // Pre-fill name from user profile if available
-    if (user.displayName) {
-      setFormData((prev) => ({
-        ...prev,
-        name: user.displayName || prev.name,
-      }))
-    }
-
-    // Check if user already has a profile
-    const checkProfile = async () => {
       try {
-        const exists = await checkUserExists(user.uid)
-        if (exists) {
-          // User already has a profile, redirect to dashboard
-          router.push("/dashboard")
+        const userData = await getUserData(user.uid)
+        if (userData) {
+          setFormData({
+            name: userData.name || user.displayName || "",
+            currentWeight: userData.currentWeight || "",
+            averageSteps: userData.averageSteps || "",
+            hasSugarTooth: userData.hasSugarTooth || "",
+            waterIntake: userData.waterIntake || "",
+            sleepHours: userData.sleepHours || "",
+            workoutHours: userData.workoutHours || "",
+            fitnessGoal: userData.fitnessGoal || "",
+            healthFocus: userData.healthFocus || "",
+          })
         }
       } catch (error) {
-        console.error("Error checking user profile:", error)
+        console.error("Error loading user profile:", error)
+        setError("Failed to load your profile. Please try again.")
+      } finally {
+        setProfileLoading(false)
       }
     }
 
-    checkProfile()
+    if (user) {
+      loadUserProfile()
+    } else if (!loading) {
+      router.push("/login")
+    }
   }, [user, loading, router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -68,44 +72,38 @@ export default function Onboarding() {
 
     setIsSubmitting(true)
     setError("")
+    setIsSuccess(false)
 
     try {
-      // Update form data with user info
-      const updatedFormData = {
-        ...formData,
-        email: user.email,
-        name: formData.name || user.displayName || "",
-      }
+      await updateUserProfile(user.uid, formData)
+      setIsSuccess(true)
 
-      // Save user data to Firebase
-      await saveUserData(updatedFormData, user)
-      console.log("User data saved to Firebase successfully")
-
-      // Store user data in localStorage for other components
+      // Update local storage for other components
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}")
       localStorage.setItem(
         "user",
         JSON.stringify({
-          ...updatedFormData,
-          uid: user.uid,
+          ...storedUser,
+          ...formData,
+          email: user.email,
         }),
       )
 
-      // Redirect to dashboard
-      router.push("/dashboard")
+      // Clear success message after 3 seconds
+      setTimeout(() => setIsSuccess(false), 3000)
     } catch (error) {
-      console.error("Error submitting form:", error)
-      setError("An error occurred while submitting the form. Please try again.")
+      console.error("Error updating profile:", error)
+      setError("Failed to update your profile. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // Show loading state while checking authentication
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
-        <span className="ml-2 text-lg text-gray-700">Loading...</span>
+        <span className="ml-2 text-lg text-gray-700">Loading profile...</span>
       </div>
     )
   }
@@ -118,7 +116,7 @@ export default function Onboarding() {
             <img src={user.photoURL || "/placeholder.svg"} alt="Profile" className="w-16 h-16 rounded-full mr-4" />
           )}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Join the Challenge</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Your Profile</h1>
             <p className="text-gray-500">{user?.email}</p>
           </div>
         </div>
@@ -131,6 +129,19 @@ export default function Onboarding() {
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-red-800">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isSuccess && (
+          <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <Check className="h-5 w-5 text-green-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-green-800">Profile updated successfully!</p>
               </div>
             </div>
           </div>
@@ -149,7 +160,6 @@ export default function Onboarding() {
               value={formData.name}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
-              placeholder={user?.displayName || ""}
             />
           </div>
 
@@ -304,10 +314,10 @@ export default function Onboarding() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Joining...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...
                 </>
               ) : (
-                "Join Challenge"
+                "Update Profile"
               )}
             </button>
           </div>

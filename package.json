@@ -58,11 +58,12 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
-    "google-auth-library": "latest",
     "@auth/core": "latest",
     "nodemailer": "latest",
+    "google-auth-library": "latest",
+    "next-auth": "latest",
     "google-spreadsheet": "latest",
-    "next-auth": "latest"
+    "firebase": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

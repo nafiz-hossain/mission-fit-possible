@@ -25,6 +25,9 @@ import {
 import { Trophy, TrendingUp, Calendar, Loader2 } from "lucide-react"
 import { subscribeToUserLogs, subscribeToLeaderboard, getUserData } from "@/lib/firebase-db"
 import { useAuth } from "@/contexts/auth-context"
+import { PointSystem } from "@/components/point-system"
+// Import the WeeklyPointsSummary component
+import { WeeklyPointsSummary } from "@/components/weekly-points-summary"
 
 export default function Dashboard() {
   const router = useRouter()
@@ -408,6 +411,9 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Weekly Points Summary - Add this section */}
+      <div className="mb-8">{user && <WeeklyPointsSummary userId={user.uid} />}</div>
+
       {/* Advanced Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <div className="bg-white p-6 rounded-lg shadow">
@@ -435,6 +441,9 @@ export default function Dashboard() {
                 <XAxis dataKey="name" />
                 <YAxis yAxisId="left" />
                 <YAxis yAxisId="right" orientation="right" />
+                <Tooltip />
+                <Legend />
+                <Line orientation="right" />
                 <Tooltip />
                 <Legend />
                 <Line
@@ -509,6 +518,11 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* Add this right before the Leaderboard section */}
+      <div className="mb-8">
+        <PointSystem />
       </div>
 
       {/* Leaderboard */}

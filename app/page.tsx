@@ -3,17 +3,28 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
+import { collection, getDocs } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 export default function Home() {
   const [participantCount, setParticipantCount] = useState(0)
+  const [loading, setLoading] = useState(true)
 
-  // Simulate fetching participant count
+  // Fetch actual participant count from Firebase
   useEffect(() => {
-    // Mock API call
-    const fetchParticipants = () => {
-      // Random number between 25-45
-      const count = Math.floor(Math.random() * 21) + 25
-      setParticipantCount(count)
+    const fetchParticipants = async () => {
+      try {
+        setLoading(true)
+        const usersRef = collection(db, "users")
+        const snapshot = await getDocs(usersRef)
+        setParticipantCount(snapshot.size)
+      } catch (error) {
+        console.error("Error fetching participants:", error)
+        // Fallback to a default value if there's an error
+        setParticipantCount(0)
+      } finally {
+        setLoading(false)
+      }
     }
 
     fetchParticipants()
@@ -40,7 +51,11 @@ export default function Home() {
           </div>
           <div className="mt-8 inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
             <span className="mr-2 text-lg">🏃</span>
-            <span>{participantCount} participants and counting!</span>
+            <span>
+              {loading
+                ? "Loading participants..."
+                : `${participantCount} participant${participantCount !== 1 ? "s" : ""} and counting!`}
+            </span>
           </div>
         </div>
 

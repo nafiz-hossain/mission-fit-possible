@@ -290,13 +290,30 @@ export async function getLeaderboardData(): Promise<any[]> {
 
         logsSnapshot.forEach((doc) => {
           const logData = doc.data()
+          const steps = Number.parseInt(logData.steps) || 0
 
-          // Add points for activities
-          points += Number.parseInt(logData.steps) / 1000 // 1 point per 1000 steps
-          points += logData.noAddedSugar ? 10 : 0 // 10 points for no sugar
-          points += Number.parseFloat(logData.waterIntake) * 5 // 5 points per liter
-          points += Number.parseFloat(logData.sleepHours) * 2 // 2 points per hour of sleep
-          points += logData.didWorkout ? 20 : 0 // 20 points for workout
+          // Add points for steps based on tiers
+          if (steps >= 20000) {
+            points += 25 // 25 points for 20000+ steps
+          } else if (steps >= 15000) {
+            points += 20 // 20 points for 15000-19999 steps
+          } else if (steps >= 10000) {
+            points += 15 // 15 points for 10000-14999 steps
+          } else if (steps >= 5000) {
+            points += 10 // 10 points for 5000-9999 steps
+          }
+
+          // Add points for other activities
+          points += logData.noAddedSugar ? 4 : 0 // 4 points for no sugar
+          points += logData.didWorkout ? 12 : 0 // 12 points for 30-minute activity
+
+          // Add points for water intake (5 points if 2+ liters)
+          const waterIntake = Number.parseFloat(logData.waterIntake) || 0
+          points += waterIntake >= 2 ? 5 : 0
+
+          // Add points for sleep (8 points if 6+ hours)
+          const sleepHours = Number.parseFloat(logData.sleepHours) || 0
+          points += sleepHours >= 6 ? 8 : 0
 
           // Track dates for streak calculation
           if (logData.date) {

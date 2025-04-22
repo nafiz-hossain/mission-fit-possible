@@ -3,9 +3,11 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Droplet, Footprints, Moon, Loader2, AlertCircle } from "lucide-react"
-import { saveDailyLog } from "@/lib/firebase-db"
+import { Check, Droplet, Footprints, Moon, Loader2, AlertCircle, Edit, ArrowLeft } from "lucide-react"
+import { saveDailyLog, checkLogExistsForDate, updateDailyLog } from "@/lib/firebase-db"
 import { useAuth } from "@/contexts/auth-context"
+// Import the PointSystem component at the top of the file
+import { PointSystem } from "@/components/point-system"
 
 export default function DailyLog() {
   const router = useRouter()
@@ -20,14 +22,45 @@ export default function DailyLog() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState("")
+  const [existingLog, setExistingLog] = useState<{ exists: boolean; log?: any }>({ exists: false })
+  const [isEditing, setIsEditing] = useState(false)
+  const [checkingLog, setCheckingLog] = useState(true)
 
   useEffect(() => {
     if (loading) return
 
     if (!user) {
       router.push("/login")
+      return
     }
-  }, [user, loading, router])
+
+    // Check if there's already a log for today
+    const checkTodayLog = async () => {
+      try {
+        setCheckingLog(true)
+        const today = new Date()
+        const result = await checkLogExistsForDate(user.uid, today)
+        setExistingLog(result)
+
+        // If we're editing and there's an existing log, populate the form
+        if (isEditing && result.exists && result.log) {
+          setFormData({
+            steps: result.log.steps,
+            noAddedSugar: result.log.noAddedSugar,
+            waterIntake: result.log.waterIntake,
+            sleepHours: result.log.sleepHours,
+            didWorkout: result.log.didWorkout,
+          })
+        }
+      } catch (error) {
+        console.error("Error checking today's log:", error)
+      } finally {
+        setCheckingLog(false)
+      }
+    }
+
+    checkTodayLog()
+  }, [user, loading, router, isEditing])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
@@ -51,9 +84,15 @@ export default function DailyLog() {
         date: new Date().toISOString(),
       }
 
-      // Save log to Firebase
-      await saveDailyLog(logData, user.uid)
-      console.log("Daily log saved to Firebase successfully")
+      if (isEditing && existingLog.exists && existingLog.log?.id) {
+        // Update existing log
+        await updateDailyLog(existingLog.log.id, logData)
+        console.log("Daily log updated successfully")
+      } else {
+        // Save new log to Firebase
+        await saveDailyLog(logData, user.uid)
+        console.log("Daily log saved to Firebase successfully")
+      }
 
       // Show success message
       setIsSuccess(true)
@@ -79,7 +118,16 @@ export default function DailyLog() {
     }
   }
 
-  if (loading) {
+  const startEditing = () => {
+    setIsEditing(true)
+  }
+
+  const cancelEditing = () => {
+    setIsEditing(false)
+    router.push("/dashboard")
+  }
+
+  if (loading || checkingLog) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
@@ -88,11 +136,87 @@ export default function DailyLog() {
     )
   }
 
+  // If there's an existing log for today and we're not in edit mode
+  if (existingLog.exists && !isEditing) {
+    const logDate =
+      existingLog.log?.date instanceof Date
+        ? existingLog.log.date.toLocaleDateString()
+        : new Date().toLocaleDateString()
+
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="bg-white shadow-md rounded-lg p-6 md:p-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Daily Fitness Log</h1>
+          <p className="text-gray-500 mb-6">You've already logged your fitness data for today ({logDate})</p>
+
+          <div className="bg-purple-50 border border-purple-200 rounded-md p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <Check className="h-5 w-5 text-purple-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-purple-800">
+                  You've already submitted your fitness log for today.
+                </p>
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center">
+                    <Footprints className="h-4 w-4 mr-2 text-purple-500" />
+                    <span className="text-sm text-gray-700">Steps: {existingLog.log?.steps}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Droplet className="h-4 w-4 mr-2 text-blue-500" />
+                    <span className="text-sm text-gray-700">Water intake: {existingLog.log?.waterIntake} liters</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Moon className="h-4 w-4 mr-2 text-indigo-500" />
+                    <span className="text-sm text-gray-700">Sleep: {existingLog.log?.sleepHours} hours</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Check className="h-4 w-4 mr-2 text-green-500" />
+                    <span className="text-sm text-gray-700">
+                      No added sugar: {existingLog.log?.noAddedSugar ? "Yes" : "No"}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <Check className="h-4 w-4 mr-2 text-green-500" />
+                    <span className="text-sm text-gray-700">
+                      Workout completed: {existingLog.log?.didWorkout ? "Yes" : "No"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex space-x-4">
+            <button
+              onClick={startEditing}
+              className="flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+            >
+              <Edit className="mr-2 h-4 w-4" /> Edit Today's Log
+            </button>
+
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="flex items-center justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
       <div className="bg-white shadow-md rounded-lg p-6 md:p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Daily Fitness Log</h1>
-        <p className="text-gray-500 mb-6">Track your healthy habits for today</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          {isEditing ? "Edit Today's Fitness Log" : "Daily Fitness Log"}
+        </h1>
+        <p className="text-gray-500 mb-6">
+          {isEditing ? "Update your healthy habits for today" : "Track your healthy habits for today"}
+        </p>
 
         {isSuccess ? (
           <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
@@ -101,7 +225,9 @@ export default function DailyLog() {
                 <Check className="h-5 w-5 text-green-400" />
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-green-800">Your daily log has been saved successfully!</p>
+                <p className="text-sm font-medium text-green-800">
+                  Your daily log has been {isEditing ? "updated" : "saved"} successfully!
+                </p>
               </div>
             </div>
           </div>
@@ -208,22 +334,39 @@ export default function DailyLog() {
                 </label>
               </div>
 
-              <div className="pt-4">
+              <div className="pt-4 flex space-x-4">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+                  className="flex-1 flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {isEditing ? "Updating..." : "Saving..."}
                     </>
+                  ) : isEditing ? (
+                    "Update Daily Log"
                   ) : (
                     "Submit Daily Log"
                   )}
                 </button>
+
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={cancelEditing}
+                    className="flex-1 flex justify-center items-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  >
+                    Cancel
+                  </button>
+                )}
               </div>
             </form>
+            {!isSuccess && (
+              <div className="mt-8">
+                <PointSystem />
+              </div>
+            )}
           </>
         )}
       </div>

@@ -34,6 +34,8 @@ export default function DailyLog() {
       return
     }
 
+    console.log("came here")
+
     // Check if there's already a log for today
     const checkTodayLog = async () => {
       try {

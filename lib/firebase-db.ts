@@ -182,22 +182,49 @@ export async function updateDailyLog(logId: string, logData: Partial<DailyLogDat
   }
 }
 
-// Save daily log to Firestore
+// // Save daily log to Firestore
+// export async function saveDailyLog(logData: DailyLogData, uid: string): Promise<void> {
+//   try {
+//     const logsRef = collection(db, "dailyLogs")
+
+//     // Convert string date to Date object if it's not already
+//     const date = typeof logData.date === "string" ? new Date(logData.date) : logData.date
+
+//     await addDoc(logsRef, {
+//       ...logData,
+//       uid,
+//       date,
+//       timestamp: Timestamp.now(),
+//     })
+//     console.log("Daily log saved successfully to Firebase")
+//   } catch (error) {
+//     console.error("Error saving daily log:", error)
+//     throw new Error(`Failed to save daily log to Firebase: ${error.message}`)
+//   }
+// }
+
 export async function saveDailyLog(logData: DailyLogData, uid: string): Promise<void> {
   try {
-    const logsRef = collection(db, "dailyLogs")
-
     // Convert string date to Date object if it's not already
-    const date = typeof logData.date === "string" ? new Date(logData.date) : logData.date
+    const dateObj = typeof logData.date === "string" ? new Date(logData.date) : logData.date
 
-    await addDoc(logsRef, {
+    const yyyy = dateObj.getFullYear()
+    const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
+    const dd = String(dateObj.getDate()).padStart(2, '0')
+    const formattedDate = `${yyyy}-${mm}-${dd}`
+
+    const docId = `${uid}_${formattedDate}`
+    const docRef = doc(db, "dailyLogs", docId)
+
+    await setDoc(docRef, {
       ...logData,
       uid,
-      date,
+      date: dateObj,
       timestamp: Timestamp.now(),
     })
+
     console.log("Daily log saved successfully to Firebase")
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error saving daily log:", error)
     throw new Error(`Failed to save daily log to Firebase: ${error.message}`)
   }

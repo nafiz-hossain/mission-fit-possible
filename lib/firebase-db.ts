@@ -222,7 +222,7 @@ export async function getUserLogs(uid: string): Promise<DailyLogData[]> {
         waterIntake: data.waterIntake,
         sleepHours: data.sleepHours,
         didWorkout: data.didWorkout,
-        date: data.date.toDate(),
+        date: data.date?.toDate ? data.date.toDate() : new Date(data.date),
         id: doc.id,
       })
     })
@@ -251,7 +251,7 @@ export function subscribeToUserLogs(uid: string, callback: (logs: DailyLogData[]
         waterIntake: data.waterIntake,
         sleepHours: data.sleepHours,
         didWorkout: data.didWorkout,
-        date: data.date.toDate(),
+        date: data.date?.toDate ? data.date.toDate() : new Date(data.date),
         id: doc.id,
       })
     })
@@ -317,7 +317,8 @@ export async function getLeaderboardData(): Promise<any[]> {
 
           // Track dates for streak calculation
           if (logData.date) {
-            const dateStr = logData.date.toDate().toDateString()
+            const dateObj = logData.date?.toDate ? logData.date.toDate() : new Date(logData.date)
+const dateStr = dateObj.toDateString()
             logDates.add(dateStr)
           }
         })

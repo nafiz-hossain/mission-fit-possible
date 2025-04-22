@@ -364,7 +364,6 @@ export default function DailyLog() {
             </form>
             {!isSuccess && (
               <div className="mt-8">
-                <PointSystem />
               </div>
             )}
           </>

@@ -126,33 +126,34 @@ export async function checkLogExistsForDate(uid: string, date: Date): Promise<{ 
   try {
     const logsRef = collection(db, "dailyLogs")
 
-    // Create date range for the given date (start of day to end of day)
-    const startDate = new Date(date)
-    startDate.setHours(0, 0, 0, 0)
+    // Format date to YYYY-MM-DD
+    const yyyy = date.getFullYear()
+    const mm = String(date.getMonth() + 1).padStart(2, "0")
+    const dd = String(date.getDate()).padStart(2, "0")
+    const formattedDate = `${yyyy}-${mm}-${dd}`
 
-    const endDate = new Date(date)
-    endDate.setHours(23, 59, 59, 999)
+    // Use doc ID pattern to directly check
+    const docId = `${uid}_${formattedDate}`
+    const logRef = doc(db, "dailyLogs", docId)
+    const logSnap = await getDoc(logRef)
 
-    const q = query(logsRef, where("uid", "==", uid), where("date", ">=", startDate), where("date", "<=", endDate))
-
-    const querySnapshot = await getDocs(q)
-
-    if (querySnapshot.empty) {
+    if (!logSnap.exists()) {
       return { exists: false }
     }
 
-    // Return the first log found for that day
-    const docData = querySnapshot.docs[0].data()
+    const data = logSnap.data()
+    console.log("✅ Log found for:", formattedDate, data)
+
     const logData: DailyLogData = {
-      uid: docData.uid,
-      email: docData.email,
-      steps: docData.steps,
-      noAddedSugar: docData.noAddedSugar,
-      waterIntake: docData.waterIntake,
-      sleepHours: docData.sleepHours,
-      didWorkout: docData.didWorkout,
-      date: docData.date.toDate(),
-      id: querySnapshot.docs[0].id,
+      uid: data.uid,
+      email: data.email,
+      steps: data.steps,
+      noAddedSugar: data.noAddedSugar,
+      waterIntake: data.waterIntake,
+      sleepHours: data.sleepHours,
+      didWorkout: data.didWorkout,
+      date: data.date?.toDate ? data.date.toDate() : new Date(data.date),
+      id: logSnap.id,
     }
 
     return { exists: true, log: logData }
@@ -161,6 +162,7 @@ export async function checkLogExistsForDate(uid: string, date: Date): Promise<{ 
     return { exists: false }
   }
 }
+
 
 // Update an existing daily log
 export async function updateDailyLog(logId: string, logData: Partial<DailyLogData>): Promise<void> {

@@ -38,10 +38,16 @@ export default function DailyLog() {
 
     // Check if there's already a log for today
     const checkTodayLog = async () => {
+
+
       try {
+
         setCheckingLog(true)
         const today = new Date()
+        console.log("came inside checktodayslog", checkLogExistsForDate(user.uid, today))
+
         const result = await checkLogExistsForDate(user.uid, today)
+
         setExistingLog(result)
 
         // If we're editing and there's an existing log, populate the form

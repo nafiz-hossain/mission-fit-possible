@@ -182,6 +182,8 @@ export default function Onboarding() {
                 required
                 min="30"
                 max="300"
+                step="0.1" // <-- Allows decimal input
+
                 value={formData.currentWeight}
                 onChange={handleChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"

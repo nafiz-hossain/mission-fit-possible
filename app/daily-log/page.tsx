@@ -223,7 +223,7 @@ export default function DailyLog() {
           {isEditing ? "Edit Today's Fitness Log" : "Daily Fitness Log"}
         </h1>
         <p className="text-gray-500 mb-6">
-          {isEditing ? "Update your healthy habits for today" : "Track your healthy habits for today"}
+          {isEditing ? "Update your healthy habits for today" : "Track your healthy habits (Let’s be honest and consistent with our inputs)"}
         </p>
 
         {isSuccess ? (
@@ -324,7 +324,7 @@ export default function DailyLog() {
                   value={formData.sleepHours}
                   onChange={handleChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
-                  placeholder="How many hours did you sleep?"
+                  placeholder="How many hours did you sleep yesterday night?"
                 />
               </div>
 

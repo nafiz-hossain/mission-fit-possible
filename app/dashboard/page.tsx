@@ -240,8 +240,7 @@ export default function Dashboard() {
   }
 
   // Generate weekly progress data
-  const generateWeeklyProgress = (logs, startDateStr) => {
-    // Get the last 7 days
+  const generateWeeklyProgress = (logs, startDateStr) => {// Get the last 7 days
     const last7Days = []
     for (let i = 6; i >= 0; i--) {
       const date = new Date()
@@ -253,26 +252,52 @@ export default function Dashboard() {
         value: 0,
       })
     }
-
+    
     // Calculate progress for each day
     logs.forEach((log) => {
       const logDate = new Date(log.date)
       const logDateString = logDate.toISOString().split("T")[0]
-
+    
       const dayIndex = last7Days.findIndex((day) => day.dateString === logDateString)
       if (dayIndex !== -1) {
-        // Calculate a progress score
         let score = 0
-        score += Number.parseInt(log.steps) / 1000 // 1 point per 1000 steps
-        score += Number.parseFloat(log.waterIntake) * 5 // 5 points per liter
-        score += Number.parseFloat(log.sleepHours) * 2 // 2 points per hour
-        score += log.didWorkout ? 20 : 0 // 20 points for workout
-        score += log.noAddedSugar ? 10 : 0 // 10 points for no sugar
-
+    
+        // Steps
+        const steps = Number.parseInt(log.steps)
+        if (steps > 20000) {
+          score += 25
+        } else if (steps > 15000) {
+          score += 20
+        } else if (steps > 10000) {
+          score += 15
+        } else if (steps > 5000) {
+          score += 10
+        }
+    
+        // No added sugar
+        if (log.noAddedSugar) {
+          score += 4
+        }
+    
+        // 30-minute activity
+        if (log.didWorkout) {
+          score += 12
+        }
+    
+        // Water intake (2+ liters)
+        if (Number.parseFloat(log.waterIntake) >= 2) {
+          score += 5
+        }
+    
+        // Sleep (6+ hours)
+        if (Number.parseFloat(log.sleepHours) >= 6) {
+          score += 8
+        }
+    
         last7Days[dayIndex].value = score
       }
     })
-
+    
     return last7Days
   }
 

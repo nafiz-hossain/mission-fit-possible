@@ -331,6 +331,9 @@ export async function getLeaderboardData(): Promise<any[]> {
           } else if (steps >= 5000) {
             points += 10 // 10 points for 5000-9999 steps
           }
+         else if (steps >=2500) {
+          points += 5 // 10 points for 5000-9999 steps
+        }
 
           // Add points for other activities
           points += logData.noAddedSugar ? 4 : 0 // 4 points for no sugar
@@ -342,7 +345,8 @@ export async function getLeaderboardData(): Promise<any[]> {
 
           // Add points for sleep (8 points if 6+ hours)
           const sleepHours = Number.parseFloat(logData.sleepHours) || 0
-          points += sleepHours >= 6 ? 8 : 0
+          points += sleepHours >= 6 ? 8 : sleepHours >= 5 ? 5 : 0
+
 
           // Track dates for streak calculation
           if (logData.date) {

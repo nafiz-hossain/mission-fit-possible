@@ -172,7 +172,7 @@ export function WeeklyPointsSummary({ userId }: WeeklyPointsSummaryProps) {
                     <span>{day.breakdown.water} pts</span>
                   </li>
                   <li className="flex justify-between">
-                    <span>Sleep (6+ hours):</span>
+                    <span>Sleep :</span>
                     <span>{day.breakdown.sleep} pts</span>
                   </li>
                   <li className="flex justify-between font-medium border-t border-gray-200 pt-1 mt-1">

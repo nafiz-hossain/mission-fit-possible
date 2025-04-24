@@ -264,16 +264,16 @@ export default function Dashboard() {
     
         // Steps
         const steps = Number.parseInt(log.steps)
-        if (steps > 20000) {
+        if (steps >= 20000) {
           score += 25
-        } else if (steps > 15000) {
+        } else if (steps >= 15000) {
           score += 20
-        } else if (steps > 10000) {
+        } else if (steps >= 10000) {
           score += 15
-        } else if (steps > 5000) {
+        } else if (steps >= 5000) {
           score += 10
         }
-        else if (steps > 2500) {
+        else if (steps >= 2500) {
           score += 5
         }
     
@@ -296,14 +296,14 @@ export default function Dashboard() {
         if (Number.parseFloat(log.sleepHours) >= 6) {
           score += 8
         }
-        else if (Number.parseFloat(log.sleepHours) >= 5) {
-          score += 5
+        else if (Number.parseFloat(log.sleepHours) >= 5 && Number.parseFloat(log.sleepHours) < 6) {
+          score += 5;
         }
     
         last7Days[dayIndex].value = score
       }
     })
-    
+    console.log(last7Days)
     return last7Days
   }
 
@@ -330,16 +330,17 @@ export default function Dashboard() {
       else if (steps >= 15000) totalPoints.Steps += 20
       else if (steps >= 10000) totalPoints.Steps += 15
       else if (steps >= 5000) totalPoints.Steps += 10
+      
   
       // New Step Bonus: 2500+ steps = 5 pts
-      if (steps >= 2500) totalPoints.Steps += 5
+      else if (steps >= 2500) totalPoints.Steps += 5
   
       // Water
       if (water >= 2) totalPoints.Water += 5
   
       // Sleep
       if (sleep >= 6) totalPoints.Sleep += 8
-      if (sleep >= 5) totalPoints.Sleep += 5 // extra bonus for 5+ hrs sleep
+      else if (sleep >= 5) totalPoints.Sleep += 5 // extra bonus for 5+ hrs sleep
   
       // Workout
       if (workout) totalPoints.Workouts += 12
@@ -349,9 +350,9 @@ export default function Dashboard() {
     })
   
     const maxPoints = {
-      Steps: 30 * logs.length,      // Max: 25 + 5 bonus
+      Steps: 25 * logs.length,      // Max: 25 + 5 bonus
       Water: 5 * logs.length,
-      Sleep: 13 * logs.length,      // Max: 8 + 5 bonus
+      Sleep: 8 * logs.length,      // Max: 8 + 5 bonus
       Workouts: 12 * logs.length,
       NoSugar: 4 * logs.length,
     }

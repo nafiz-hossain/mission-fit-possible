@@ -28,13 +28,14 @@ export function calculatePointsForLog(log: DailyLogData): {
   } else if (steps >= 5000) {
     stepsPoints = 10 // 10 points for 5000-9999 steps
   }
-
+  else if (steps >= 2500) {
+    stepsPoints = 5 
+  }
   // Calculate points for other activities
   const noSugarPoints = log.noAddedSugar ? 4 : 0 // 4 points for no sugar
   const workoutPoints = log.didWorkout ? 12 : 0 // 12 points for 30-minute activity
   const waterPoints = waterIntake >= 2 ? 5 : 0 // 5 points if 2+ liters
-  const sleepPoints = sleepHours >= 6 ? 8 : 0 // 8 points if 6+ hours
-
+  const sleepPoints = sleepHours >= 6 ? 8 : sleepHours >= 5 ? 5 : 0
   // Calculate total points
   const totalPoints = stepsPoints + noSugarPoints + workoutPoints + waterPoints + sleepPoints
 

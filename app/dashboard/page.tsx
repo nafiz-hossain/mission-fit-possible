@@ -273,6 +273,9 @@ export default function Dashboard() {
         } else if (steps > 5000) {
           score += 10
         }
+        else if (steps > 2500) {
+          score += 5
+        }
     
         // No added sugar
         if (log.noAddedSugar) {
@@ -292,6 +295,9 @@ export default function Dashboard() {
         // Sleep (6+ hours)
         if (Number.parseFloat(log.sleepHours) >= 6) {
           score += 8
+        }
+        else if (Number.parseFloat(log.sleepHours) >= 5) {
+          score += 5
         }
     
         last7Days[dayIndex].value = score
@@ -319,23 +325,33 @@ export default function Dashboard() {
       const workout = log.didWorkout
       const noSugar = log.noAddedSugar
   
-      // Steps Point Logic
-      if (steps >= 20000) totalPoints.Steps += 4
-      else if (steps >= 15000) totalPoints.Steps += 3
-      else if (steps >= 10000) totalPoints.Steps += 2
-      else if (steps >= 5000) totalPoints.Steps += 1
+      // Updated Step Points
+      if (steps >= 20000) totalPoints.Steps += 25
+      else if (steps >= 15000) totalPoints.Steps += 20
+      else if (steps >= 10000) totalPoints.Steps += 15
+      else if (steps >= 5000) totalPoints.Steps += 10
   
-      // Other categories
+      // New Step Bonus: 2500+ steps = 5 pts
+      if (steps >= 2500) totalPoints.Steps += 5
+  
+      // Water
       if (water >= 2) totalPoints.Water += 5
+  
+      // Sleep
       if (sleep >= 6) totalPoints.Sleep += 8
+      if (sleep >= 5) totalPoints.Sleep += 5 // extra bonus for 5+ hrs sleep
+  
+      // Workout
       if (workout) totalPoints.Workouts += 12
+  
+      // No Sugar
       if (noSugar) totalPoints.NoSugar += 4
     })
   
     const maxPoints = {
-      Steps: 4 * logs.length,
+      Steps: 30 * logs.length,      // Max: 25 + 5 bonus
       Water: 5 * logs.length,
-      Sleep: 8 * logs.length,
+      Sleep: 13 * logs.length,      // Max: 8 + 5 bonus
       Workouts: 12 * logs.length,
       NoSugar: 4 * logs.length,
     }
@@ -367,7 +383,7 @@ export default function Dashboard() {
         fullMark: 100,
       },
     ]
-  };
+  }
 
   // Colors for pie chart
   const COLORS = ["#8884d8", "#83a6ed", "#8dd1e1", "#82ca9d", "#a4de6c"]

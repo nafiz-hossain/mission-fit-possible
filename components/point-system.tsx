@@ -14,6 +14,7 @@ export function PointSystem() {
         <div>
           <h3 className="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-2">Steps</h3>
           <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700">
+          <li>Walk/Run over 2,500 steps — <span className="font-medium text-gray-900">5 points</span></li>
             <li>Walk/Run over 5,000 steps — <span className="font-medium text-gray-900">10 points</span></li>
             <li>Walk/Run over 10,000 steps — <span className="font-medium text-gray-900">15 points</span></li>
             <li>Walk/Run over 15,000 steps — <span className="font-medium text-gray-900">20 points</span></li>
@@ -28,6 +29,7 @@ export function PointSystem() {
             <li>30-minute activity (workout, stretch, yoga, Afterburners) — <span className="font-medium text-gray-900">12 points</span></li>
             <li>Drank minimum 2 liters of water — <span className="font-medium text-gray-900">5 points</span></li>
             <li>Slept 6+ hours last night — <span className="font-medium text-gray-900">8 points</span></li>
+            <li>Slept atleast 5 hours last night — <span className="font-medium text-gray-900">5 points</span></li>
           </ul>
         </div>
       </div>

@@ -301,59 +301,73 @@ export default function Dashboard() {
     return last7Days
   }
 
-  // Generate fitness radar data
   const generateFitnessRadar = (logs) => {
-    if (logs.length === 0) return []
-
-    // Calculate averages
-    let totalSteps = 0
-    let totalWater = 0
-    let totalSleep = 0
-    let totalWorkouts = 0
-    let totalNoSugar = 0
-
+    if (!logs || logs.length === 0) return []
+  
+    let totalPoints = {
+      Steps: 0,
+      Water: 0,
+      Sleep: 0,
+      Workouts: 0,
+      NoSugar: 0,
+    }
+  
     logs.forEach((log) => {
-      totalSteps += Number.parseInt(log.steps) || 0
-      totalWater += Number.parseFloat(log.waterIntake) || 0
-      totalSleep += Number.parseFloat(log.sleepHours) || 0
-      totalWorkouts += log.didWorkout ? 1 : 0
-      totalNoSugar += log.noAddedSugar ? 1 : 0
+      const steps = parseInt(log.steps) || 0
+      const water = parseFloat(log.waterIntake) || 0
+      const sleep = parseFloat(log.sleepHours) || 0
+      const workout = log.didWorkout
+      const noSugar = log.noAddedSugar
+  
+      // Steps Point Logic
+      if (steps >= 20000) totalPoints.Steps += 4
+      else if (steps >= 15000) totalPoints.Steps += 3
+      else if (steps >= 10000) totalPoints.Steps += 2
+      else if (steps >= 5000) totalPoints.Steps += 1
+  
+      // Other categories
+      if (water >= 2) totalPoints.Water += 5
+      if (sleep >= 6) totalPoints.Sleep += 8
+      if (workout) totalPoints.Workouts += 12
+      if (noSugar) totalPoints.NoSugar += 4
     })
-
-    const avgSteps = totalSteps / logs.length
-    const avgWater = totalWater / logs.length
-    const avgSleep = totalSleep / logs.length
-    const workoutPercentage = (totalWorkouts / logs.length) * 100
-    const noSugarPercentage = (totalNoSugar / logs.length) * 100
-
+  
+    const maxPoints = {
+      Steps: 4 * logs.length,
+      Water: 5 * logs.length,
+      Sleep: 8 * logs.length,
+      Workouts: 12 * logs.length,
+      NoSugar: 4 * logs.length,
+    }
+  
     return [
       {
         subject: "Steps",
-        A: Math.min(100, (avgSteps / 10000) * 100), // 10000 steps is 100%
+        A: Math.round((totalPoints.Steps / maxPoints.Steps) * 100),
         fullMark: 100,
       },
       {
         subject: "Water",
-        A: Math.min(100, (avgWater / 3) * 100), // 3 liters is 100%
+        A: Math.round((totalPoints.Water / maxPoints.Water) * 100),
         fullMark: 100,
       },
       {
         subject: "Sleep",
-        A: Math.min(100, (avgSleep / 8) * 100), // 8 hours is 100%
+        A: Math.round((totalPoints.Sleep / maxPoints.Sleep) * 100),
         fullMark: 100,
       },
       {
         subject: "Workouts",
-        A: workoutPercentage,
+        A: Math.round((totalPoints.Workouts / maxPoints.Workouts) * 100),
         fullMark: 100,
       },
       {
         subject: "No Sugar",
-        A: noSugarPercentage,
+        A: Math.round((totalPoints.NoSugar / maxPoints.NoSugar) * 100),
         fullMark: 100,
       },
     ]
-  }
+  };
 
   // Colors for pie chart
   const COLORS = ["#8884d8", "#83a6ed", "#8dd1e1", "#82ca9d", "#a4de6c"]
